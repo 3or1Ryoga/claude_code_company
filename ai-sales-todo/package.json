@@ -1,0 +1,46 @@
+{
+  "name": "ai-sales-todo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered sales todo management system with voice recognition and chat interface",
+  "keywords": ["ai", "sales", "todo", "voice", "chat", "supabase", "gemini"],
+  "author": "AI Development Team",
+  "license": "MIT",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "jest",
+    "test:integration": "node __tests__/voice-todo-integration.test.js",
+    "clean": "rm -rf .next node_modules/.cache"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.54.0",
+    "lucide-react": "^0.537.0",
+    "next": "15.4.6",
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "eslint": "^8",
+    "eslint-config-next": "15.4.6",
+    "jest": "^29.7.0",
+    "tailwindcss": "^4"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/ai-sales-todo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/ai-sales-todo/issues"
+  },
+  "homepage": "https://github.com/your-org/ai-sales-todo#readme"
+}

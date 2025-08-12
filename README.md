@@ -53,14 +53,14 @@ tmux attach-session -t president
 **手順1: President認証**
 ```bash
 # まずPRESIDENTで認証を実施
-tmux send-keys -t president 'claude' C-m
+tmux send-keys -t president 'claude --dangerously-skip-permissions' C-m
 ```
 認証プロンプトに従って許可を与えてください。
 
 **手順2: Multiagent一括起動**
 ```bash
 # 認証完了後、multiagentセッションを一括起動
-for i in {0..3}; do tmux send-keys -t multiagent:0.$i 'claude' C-m; done
+for i in {0..3}; do tmux send-keys -t multiagent:0.$i 'claude --dangerously-skip-permissions' C-m; done
 ```
 
 ### 4. デモ実行

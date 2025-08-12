@@ -1,0 +1,11 @@
+{
+  "projectName": "flighter-20250812175037",
+  "siteName": "Flighter",
+  "source": {
+    "concept": null,
+    "name": "Flighter",
+    "file": "./concepts/flighter-20250812175036.md"
+  },
+  "model": "v0-1.5-md",
+  "createdAt": "2025-08-12T08:51:56.682Z"
+}

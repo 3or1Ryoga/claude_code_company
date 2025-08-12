@@ -1,0 +1,17 @@
+{
+  "projectName": "test-business-mock-homepage-mock-20250807230106",
+  "siteName": "ABC コンサルティング",
+  "siteDescription": "プロフェッショナルなビジネスコンサルティングサービスを提供",
+  "industry": "business",
+  "style": "professional",
+  "features": [
+    "hero section",
+    "services",
+    "about us",
+    "testimonials",
+    "contact"
+  ],
+  "generatedAt": "2025-08-07T14:01:32.150Z",
+  "mockGeneration": true,
+  "v0Model": "mock-v0-1.5-md"
+}

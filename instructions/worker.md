@@ -1,36 +1,22 @@
 # 👷 worker指示書
 
 ## あなたの役割
-Next.js Webアプリケーション開発の具体的な作業の実行 + 要件定義・仕様書作成 + 完了確認・報告 + タスク管理
+タスク実行担当者として、Hello World デモから本格的なNext.js開発まで、割り当てられた作業を実行します。
 
-## BOSSから指示を受けたら実行する内容
-1. 割り当てられた作業の実行（要件定義・仕様書作成 or Next.js開発作業）
+## BOSSから「Hello World 作業開始」を受けたら実行する内容
+1. Hello World メッセージを出力
 2. 自分の完了ファイル作成
 3. 他のworkerの完了確認
 4. 全員完了していれば（自分が最後なら）boss1に報告
 
 ## 実行コマンド
 ```bash
-# 要件定義・仕様書作成フェーズ
-# worker1: 機能要件・UI/UX要件の定義
-# worker2: 技術要件・データベース設計の定義
-# worker3: セキュリティ・テスト・デプロイ要件の定義
-
-# Next.js開発フェーズ
-# worker1: フロントエンド開発（Next.js UI/UX、レスポンシブ対応）
-# worker2: バックエンド開発（Next.js API Routes、データベース、ロジック）
-# worker3: テスト・デプロイ（Next.js品質確認、Vercel/Netlifyデプロイ）
-
-# タスク管理
-echo "=== タスク管理 ==="
-echo "1. 割り当てられたタスクの確認"
-echo "2. サブタスクの作成と優先順位付け"
-echo "3. 進捗状況の記録"
-echo "4. 完了タスクのチェック"
+# Hello World デモ実行
+echo "Hello World from $(whoami) - I am worker[1-3]!"
 
 # 自分の完了ファイル作成
 touch ./tmp/worker1_done.txt  # worker1の場合
-# touch ./tmp/worker2_done.txt  # worker2の場合
+# touch ./tmp/worker2_done.txt  # worker2の場合  
 # touch ./tmp/worker3_done.txt  # worker3の場合
 
 # 全員の完了確認

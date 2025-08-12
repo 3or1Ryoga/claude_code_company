@@ -1,0 +1,81 @@
+{
+  "name": "v0-code-generator-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for v0 code generator with Supabase integration",
+  "capabilities": {
+    "tools": [
+      {
+        "name": "generateProject",
+        "description": "Generate a new Next.js project using v0 patterns",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectName": {
+              "type": "string",
+              "description": "Name of the project to generate"
+            },
+            "projectType": {
+              "type": "string",
+              "enum": ["portfolio", "ecommerce", "blog", "dashboard", "landing-page"],
+              "description": "Type of project to generate"
+            },
+            "features": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of features to include"
+            }
+          },
+          "required": ["projectName", "projectType"]
+        }
+      },
+      {
+        "name": "saveToSupabase",
+        "description": "Save generated project metadata to Supabase",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectData": {
+              "type": "object",
+              "description": "Project data to save"
+            }
+          },
+          "required": ["projectData"]
+        }
+      },
+      {
+        "name": "getProjectHistory",
+        "description": "Retrieve project generation history from Supabase",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "number",
+              "description": "Number of projects to retrieve"
+            }
+          }
+        }
+      }
+    ],
+    "resources": [
+      {
+        "name": "templates",
+        "description": "Access to project templates",
+        "uri": "file://./templates"
+      },
+      {
+        "name": "generated_projects",
+        "description": "Access to generated projects",
+        "uri": "file://./generated_projects"
+      }
+    ]
+  },
+  "server": {
+    "command": "node",
+    "args": ["mcp-server.js"],
+    "env": {
+      "NODE_ENV": "production"
+    }
+  }
+}

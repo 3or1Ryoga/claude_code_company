@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "v0-code-generator": {
+      "command": "node",
+      "args": [
+        "/Users/ryogasakai/dev/claude_demo/claude_code_company/v0-code-generator/mcp-server.js"
+      ],
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  }
+}
