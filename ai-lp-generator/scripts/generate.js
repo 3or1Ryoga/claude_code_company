@@ -39,11 +39,13 @@ function extractDependencies(code) {
 }
 
 function parseArgs(argv) {
-  const args = { start: false, concept: '', name: '', file: '' }
+  const args = { start: false, concept: '', name: '', file: '', skipAiFix: false }
   for (let i = 2; i < argv.length; i += 1) {
     const token = argv[i]
     if (token === '--start') {
       args.start = true
+    } else if (token === '--skip-ai-fix') {
+      args.skipAiFix = true
     } else if (token === '--name') {
       args.name = argv[i + 1] || ''
       i += 1
@@ -134,7 +136,7 @@ async function runCommand(command, commandArgs, options = {}) {
 }
 
 async function main() {
-  const { start, concept, name, file } = parseArgs(process.argv)
+  const { start, concept, name, file, skipAiFix } = parseArgs(process.argv)
 
   if (!concept && !name && !file) {
     throw new Error('少なくともコンセプト、--name、--file のいずれかを指定してください。例: npm run generate -- "concept"、または --name "サイト名" --file path/to/instructions.md')
@@ -274,6 +276,20 @@ Requirements:
   const pagePath = path.join(projectPath, 'src', 'app', 'page.tsx')
   await fs.writeFile(pagePath, fixedCode)
   console.log(`✅ 書き込み完了: ${pagePath}`)
+
+  // 生成直後に自動 ai-fix 実行（--skip-ai-fix 指定時はスキップ）
+  if (!skipAiFix) {
+    const targetPathForFix = path.join(projectPath, 'src')
+    console.log('\n[5/5] 生成直後の自動コード修復を実行します (ai-fix)...')
+    try {
+      await runCommand('npm', ['run', 'ai-fix', '--', '--path', targetPathForFix])
+      console.log('✅ ai-fix の実行が完了しました')
+    } catch (e) {
+      console.warn('⚠️ ai-fix の実行に失敗しました:', e?.message || e)
+    }
+  } else {
+    console.log('\n(スキップ) 自動 ai-fix は --skip-ai-fix 指定により実行しませんでした')
+  }
 
   console.log('\n🎉 完了しました')
   console.log(`プロジェクト: ${projectPath}`)
