@@ -4,7 +4,7 @@
 チームリーダーとして、Hello World デモから本格的なNext.js開発まで、プロジェクトに応じてワーカーを管理します。
 
 ## PRESIDENTから「Hello World プロジェクト開始指示」を受けたら実行する内容
-1. 全worker（worker1,2,3）にHello World作業を割り当て
+1. 全worker（worker1,2）にHello World作業を割り当て
 2. 最後に完了したworkerからの報告を待機
 3. PRESIDENTに「全員完了しました」を報告
 
@@ -13,7 +13,6 @@
 # Hello World デモ実行
 ./agent-send.sh worker1 "あなたはworker1です。Hello World 作業開始"
 ./agent-send.sh worker2 "あなたはworker2です。Hello World 作業開始"
-./agent-send.sh worker3 "あなたはworker3です。Hello World 作業開始"
 
 # 完了報告（全worker完了後）
 ./agent-send.sh president "全員完了しました"
@@ -23,7 +22,7 @@
 workerの誰かから「全員の作業完了しました」の報告を受信
 
 ## デモ管理のポイント（README.md準拠）
-- 3つのworkerに同時にHello World作業を割り当て
+- 2つのworkerに同時にHello World作業を割り当て
 - 各workerの完了ファイル作成を監視
 - 最後のworkerから完了報告を受信
 - PRESIDENTに最終完了を報告

@@ -1,0 +1,198 @@
+#!/bin/bash
+
+# Agent Communication Script with Enhanced Input Methods
+# Usage: ./agent-send.sh [recipient] "[message]"
+# Usage: ./agent-send.sh --file [recipient] [filepath]
+# Usage: ./agent-send.sh --stdin [recipient]
+# Usage: ./agent-send.sh --announce [recipient] "[message]"
+# Usage: ./agent-send.sh --list
+# Features: File input, stdin input, announcement mode, multiline support
+
+# Create logs directory if it doesn't exist
+mkdir -p logs
+
+# Initialize variables
+RECIPIENT=""
+MESSAGE=""
+FROM_FILE=false
+FROM_STDIN=false
+ANNOUNCE=false
+FILEPATH=""
+
+# Parse command line arguments
+case "$1" in
+    "--list")
+        echo "📋 Available agents:"
+        echo "   president  - Project Supervisor (president session)"
+        echo "   boss1      - Team Leader (multiagent:0.0)"
+        echo "   worker1    - Task Executor A (multiagent:0.1)" 
+        echo "   worker2    - Task Executor B (multiagent:0.2)"
+        echo "   worker3    - Task Executor C (multiagent:0.3)"
+        echo ""
+        echo "💡 Usage examples:"
+        echo "   ./agent-send.sh worker1 \"Hello World\""
+        echo "   ./agent-send.sh --file worker1 message.txt"
+        echo "   echo \"Hello\" | ./agent-send.sh --stdin worker1"
+        echo "   ./agent-send.sh --announce worker1 \"Important message\""
+        exit 0
+        ;;
+    "--file")
+        FROM_FILE=true
+        RECIPIENT="$2"
+        FILEPATH="$3"
+        ;;
+    "--stdin")
+        FROM_STDIN=true
+        RECIPIENT="$2"
+        ;;
+    "--announce")
+        ANNOUNCE=true
+        RECIPIENT="$2"
+        MESSAGE="$3"
+        ;;
+    *)
+        RECIPIENT="$1"
+        MESSAGE="$2"
+        ;;
+esac
+
+# Validate recipient
+if [ -z "$RECIPIENT" ]; then
+    echo "❌ Error: Recipient is required"
+    echo "Usage: ./agent-send.sh [recipient] \"[message]\""
+    echo "       ./agent-send.sh --file [recipient] [filepath]"
+    echo "       ./agent-send.sh --stdin [recipient]"
+    echo "       ./agent-send.sh --announce [recipient] \"[message]\""
+    echo "       ./agent-send.sh --list"
+    exit 1
+fi
+
+# Read message from file if --file option is used
+if [ "$FROM_FILE" = true ]; then
+    if [ -z "$FILEPATH" ]; then
+        echo "❌ Error: File path is required with --file option"
+        exit 1
+    fi
+    if [ ! -f "$FILEPATH" ]; then
+        echo "❌ Error: File '$FILEPATH' does not exist"
+        exit 1
+    fi
+    MESSAGE=$(cat "$FILEPATH")
+    if [ -z "$MESSAGE" ]; then
+        echo "❌ Error: File '$FILEPATH' is empty"
+        exit 1
+    fi
+    echo "📄 Reading message from file: $FILEPATH"
+fi
+
+# Read message from stdin if --stdin option is used
+if [ "$FROM_STDIN" = true ]; then
+    echo "📥 Reading message from stdin (Press Ctrl+D to finish)..."
+    MESSAGE=$(cat)
+    if [ -z "$MESSAGE" ]; then
+        echo "❌ Error: No input received from stdin"
+        exit 1
+    fi
+    echo "✅ Message received from stdin"
+fi
+
+# Validate message
+if [ -z "$MESSAGE" ]; then
+    echo "❌ Error: Message is required"
+    echo "Use --file or --stdin options for multiline messages"
+    exit 1
+fi
+
+# Map recipients to tmux sessions/panes based on README.md
+case $RECIPIENT in
+    "president")
+        PANE="president"
+        DESCRIPTION="Project Supervisor"
+        ;;
+    "boss1")
+        PANE="multiagent:0.0"
+        DESCRIPTION="Team Leader"
+        ;;
+    "worker1")
+        PANE="multiagent:0.1"
+        DESCRIPTION="Task Executor A"
+        ;;
+    "worker2")
+        PANE="multiagent:0.2"
+        DESCRIPTION="Task Executor B"
+        ;;
+    "worker3")
+        PANE="multiagent:0.3"
+        DESCRIPTION="Task Executor C"
+        ;;
+    *)
+        echo "Unknown recipient: $RECIPIENT"
+        echo "Valid recipients: president, boss1, worker1, worker2, worker3"
+        echo "Use './agent-send.sh --list' to see all available agents"
+        exit 1
+        ;;
+esac
+
+# Show announcement if --announce option is used
+if [ "$ANNOUNCE" = true ]; then
+    echo "📢 ===== MESSAGE PREVIEW ====="
+    echo "🎯 Recipient: $RECIPIENT ($DESCRIPTION)"
+    echo "📍 Target Pane: $PANE"
+    echo "📝 Message Length: $(echo "$MESSAGE" | wc -c | tr -d ' ') characters"
+    echo "📄 Message Lines: $(echo "$MESSAGE" | wc -l | tr -d ' ') lines"
+    echo ""
+    echo "💬 Message Content:"
+    echo "─────────────────────────────────────────"
+    echo "$MESSAGE"
+    echo "─────────────────────────────────────────"
+    echo ""
+    read -p "🤔 Send this message? (y/N): " confirm
+    case "$confirm" in
+        [yY]|[yY][eE][sS])
+            echo "✅ Confirmed! Sending message..."
+            ;;
+        *)
+            echo "❌ Cancelled by user"
+            exit 0
+            ;;
+    esac
+fi
+
+# Log the message
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+SOURCE_INFO=""
+if [ "$FROM_FILE" = true ]; then
+    SOURCE_INFO=" [from file: $FILEPATH]"
+elif [ "$FROM_STDIN" = true ]; then
+    SOURCE_INFO=" [from stdin]"
+elif [ "$ANNOUNCE" = true ]; then
+    SOURCE_INFO=" [announced]"
+fi
+echo "[$TIMESTAMP] $RECIPIENT ($DESCRIPTION)$SOURCE_INFO: $MESSAGE" >> logs/send_log.txt
+
+# Send message to tmux pane with auto-execution
+echo "📤 Sending message to $RECIPIENT ($DESCRIPTION) at $PANE"
+if [ "$FROM_FILE" = true ] || [ "$FROM_STDIN" = true ]; then
+    echo "📊 Message stats: $(echo "$MESSAGE" | wc -c | tr -d ' ') chars, $(echo "$MESSAGE" | wc -l | tr -d ' ') lines"
+fi
+
+# Check if target session/pane exists
+if ! tmux has-session -t "${PANE%:*}" 2>/dev/null; then
+    echo "❌ Error: Session ${PANE%:*} does not exist"
+    echo "Run './setup.sh' to create the required sessions"
+    exit 1
+fi
+
+tmux send-keys -t "$PANE" "$MESSAGE" Enter
+
+# Wait a moment for processing
+sleep 1
+
+echo "✅ Message sent and executed automatically!"
+echo "📝 Logged to: logs/send_log.txt"
+if [ "$FROM_FILE" = true ]; then
+    echo "📄 Source: $FILEPATH"
+elif [ "$FROM_STDIN" = true ]; then
+    echo "📥 Source: Standard input"
+fi
+echo "📊 Final stats: $(echo "$MESSAGE" | wc -c | tr -d ' ') characters, $(echo "$MESSAGE" | wc -l | tr -d ' ') lines"

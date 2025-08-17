@@ -5,10 +5,98 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient()
     const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
     const limit = searchParams.get('limit') || '10'
     const offset = searchParams.get('offset') || '0'
     const search = searchParams.get('search') || ''
 
+    // If ID is provided, fetch single project
+    if (id) {
+      // First try to get from database by ID
+      let { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      // If not found by ID, try to find by project name
+      if (error) {
+        const { data: nameData, error: nameError } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('name', id)
+          .single()
+        
+        if (nameError) {
+          // If still not found, try to create from filesystem
+          const fs = await import('fs/promises')
+          const path = await import('path')
+          
+          try {
+            const projectDir = path.join(process.cwd(), 'generated_projects', id)
+            const projectInfoPath = path.join(projectDir, 'project-info.json')
+            const pageFilePath = path.join(projectDir, 'src', 'app', 'page.tsx')
+            
+            // Check if project directory exists
+            await fs.access(projectDir)
+            
+            let projectInfo = {}
+            try {
+              const infoData = await fs.readFile(projectInfoPath, 'utf8')
+              projectInfo = JSON.parse(infoData)
+            } catch (e) {
+              // Use default project info if file doesn't exist
+              projectInfo = {
+                projectName: id,
+                siteName: id,
+                createdAt: new Date().toISOString()
+              }
+            }
+            
+            let generatedCode = ''
+            try {
+              generatedCode = await fs.readFile(pageFilePath, 'utf8')
+            } catch (e) {
+              console.warn('Could not read page.tsx file:', e)
+            }
+            
+            // Create a virtual project object
+            const virtualProject = {
+              id: id,
+              project_name: projectInfo.siteName || id,
+              name: projectInfo.siteName || id,
+              generated_code: generatedCode,
+              code: generatedCode,
+              concept: projectInfo.concept || '',
+              preview_url: null,
+              created_at: projectInfo.createdAt || new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              status: 'active'
+            }
+            
+            return NextResponse.json({
+              success: true,
+              project: virtualProject
+            })
+          } catch (fsError) {
+            console.error('Error accessing project files:', fsError)
+            return NextResponse.json(
+              { error: 'Project not found' },
+              { status: 404 }
+            )
+          }
+        } else {
+          data = nameData
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        project: data
+      })
+    }
+
+    // Otherwise, fetch project list
     let query = supabase
       .from('projects')
       .select('*')

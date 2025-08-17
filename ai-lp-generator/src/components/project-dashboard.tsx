@@ -12,7 +12,13 @@ import {
   CalendarIcon,
   FolderIcon,
   CodeIcon,
-  SaveIcon
+  SaveIcon,
+  DownloadIcon,
+  ArchiveIcon,
+  LinkIcon,
+  FileIcon,
+  ShieldCheckIcon,
+  TagIcon
 } from 'lucide-react'
 
 interface Project {
@@ -33,6 +39,11 @@ interface Project {
   thumbnailUrl?: string
   code?: string
   concept?: string
+  archivePath?: string
+  conceptId?: string
+  archiveSize?: number
+  checksum?: string
+  version?: number
 }
 
 interface ProjectDashboardProps {
@@ -43,6 +54,7 @@ interface ProjectDashboardProps {
   onDeleteProject: (projectId: string) => void
   onViewCode?: (project: Project) => void
   onUpdateProject?: (projectId: string, projectData: { name: string, code: string }) => void
+  onDownload?: (projectId: string) => void
 }
 
 const statusConfig = {
@@ -58,7 +70,8 @@ export default function ProjectDashboard({
   onPreviewProject,
   onDeleteProject,
   onViewCode,
-  onUpdateProject
+  onUpdateProject,
+  onDownload
 }: ProjectDashboardProps) {
   const [selectedProject, setSelectedProject] = useState<string | null>(null)
 
@@ -74,6 +87,14 @@ export default function ProjectDashboard({
 
   const truncateText = (text: string, maxLength: number = 100) => {
     return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
   }
 
   return (
@@ -93,7 +114,7 @@ export default function ProjectDashboard({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -147,6 +168,20 @@ export default function ProjectDashboard({
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">アーカイブ</p>
+                <p className="text-2xl font-bold">
+                  {projects.filter(p => p.archivePath).length}
+                </p>
+              </div>
+              <ArchiveIcon className="w-8 h-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Project Grid */}
@@ -186,9 +221,42 @@ export default function ProjectDashboard({
                     {statusConfig[project.status].label}
                   </Badge>
                 </div>
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <CalendarIcon className="w-4 h-4 mr-1" />
-                  {formatDate(project.createdAt)}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <div className="flex items-center">
+                      <CalendarIcon className="w-4 h-4 mr-1" />
+                      {formatDate(project.createdAt)}
+                    </div>
+                    {project.version && (
+                      <div className="flex items-center">
+                        <TagIcon className="w-4 h-4 mr-1" />
+                        <span className="text-xs">v{project.version}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* メタデータ表示 */}
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    {project.conceptId && (
+                      <div className="flex items-center">
+                        <LinkIcon className="w-3 h-3 mr-1" />
+                        <span>Concept: {project.conceptId.slice(0, 8)}...</span>
+                      </div>
+                    )}
+                    {project.archivePath && project.archiveSize && (
+                      <div className="flex items-center">
+                        <FileIcon className="w-3 h-3 mr-1" />
+                        <span className="text-green-600">{formatFileSize(project.archiveSize)}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {project.checksum && (
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <ShieldCheckIcon className="w-3 h-3 mr-1" />
+                      <span className="font-mono">{project.checksum.slice(0, 12)}...</span>
+                    </div>
+                  )}
                 </div>
               </CardHeader>
               
@@ -225,8 +293,8 @@ export default function ProjectDashboard({
                   </div>
                 </div>
 
-                {/* アクションボタン */}
-                <div className="grid grid-cols-2 gap-2">
+                {/* アクションボタン - レスポンシブ対応 */}
+                <div className="flex flex-col sm:grid sm:grid-cols-2 gap-2">
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -234,46 +302,76 @@ export default function ProjectDashboard({
                       e.stopPropagation()
                       onPreviewProject(project.id)
                     }}
+                    aria-label={`${project.name}をプレビューする`}
                   >
                     <EyeIcon className="w-4 h-4 mr-1" />
-                    プレビュー
+                    <span className="hidden sm:inline">プレビュー</span>
+                    <span className="sm:hidden">表示</span>
                   </Button>
-                  {onViewCode && project.code && (
+                    {project.archivePath && onDownload && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onDownload(project.id)
+                        }}
+                        className="text-green-600 hover:text-green-700"
+                        aria-label={`${project.name}をダウンロードする${project.archiveSize ? ` (${formatFileSize(project.archiveSize)})` : ''}`}
+                      >
+                        <DownloadIcon className="w-4 h-4 mr-1" />
+                        <div className="flex flex-col items-start">
+                          <span className="hidden sm:inline">ダウンロード</span>
+                          <span className="sm:hidden">DL</span>
+                          {project.archiveSize && (
+                            <span className="text-xs opacity-75">
+                              {formatFileSize(project.archiveSize)}
+                            </span>
+                          )}
+                        </div>
+                      </Button>
+                    )}
+                    {onViewCode && project.code && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onViewCode(project)
+                        }}
+                        aria-label={`${project.name}のコードを表示する`}
+                      >
+                        <CodeIcon className="w-4 h-4 mr-1" />
+                        <span className="hidden sm:inline">コード</span>
+                        <span className="sm:hidden">Code</span>
+                      </Button>
+                    )}
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation()
-                        onViewCode(project)
+                        onEditProject(project.id)
                       }}
+                      aria-label={`${project.name}を編集する`}
                     >
-                      <CodeIcon className="w-4 h-4 mr-1" />
-                      コード
+                      <EditIcon className="w-4 h-4 mr-1" />
+                      編集
                     </Button>
-                  )}
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onEditProject(project.id)
-                    }}
-                  >
-                    <EditIcon className="w-4 h-4 mr-1" />
-                    編集
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onDeleteProject(project.id)
-                    }}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <TrashIcon className="w-4 h-4 mr-1" />
-                    削除
-                  </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onDeleteProject(project.id)
+                      }}
+                      className="text-red-600 hover:text-red-700"
+                      aria-label={`${project.name}を削除する`}
+                    >
+                      <TrashIcon className="w-4 h-4 mr-1" />
+                      削除
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

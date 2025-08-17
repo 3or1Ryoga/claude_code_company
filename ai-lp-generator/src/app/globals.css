@@ -78,6 +78,8 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: system-ui, -apple-system, sans-serif;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: auto;
 }
 
 * {

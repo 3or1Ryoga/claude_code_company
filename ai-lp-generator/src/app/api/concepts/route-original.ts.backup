@@ -1,0 +1,136 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { 
+  saveConceptMarkdown, 
+  ConceptParams,
+  generateMarkdownWithGemini,
+  buildMarkdown
+} from '@/lib/generator/concept'
+
+export const runtime = 'nodejs'
+
+export async function POST(request: NextRequest) {
+  console.log('🚨 DEBUG: Concepts API POST request received')
+  try {
+    // Authentication check
+    const supabase = await createServerSupabaseClient()
+    const {
+      data: { user },
+      error: authError
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: '認証が必要です' },
+        { status: 401 }
+      )
+    }
+
+    const body = await request.json()
+    console.log('🚨 DEBUG: Request body:', JSON.stringify(body, null, 2))
+    const params: ConceptParams = {
+      siteName: String(body.siteName || '').trim(),
+      brief: body.brief?.trim() || '',
+      problem: body.problem?.trim() || '',
+      affinity: body.affinity?.trim() || '',
+      solution: body.solution?.trim() || '',
+      offer: body.offer?.trim() || '',
+      narrowingDown: body.narrowingDown?.trim() || '',
+      action: body.action?.trim() || '',
+      colors: {
+        primary: body.primary?.trim() || '#0EA5E9',
+        accent: body.accent?.trim() || '#9333EA',
+        background: body.background?.trim() || '#0B1221',
+      },
+      nav: String(body.nav || '')
+        .split(',')
+        .map((s: string) => s.trim())
+        .filter(Boolean),
+      logoText: body.logoText?.trim() || '',
+      socials: {
+        x: body.x?.trim() || '',
+        linkedin: body.linkedin?.trim() || '',
+        github: body.github?.trim() || '',
+      },
+      contact: {
+        email: body.email?.trim() || '',
+        url: body.url?.trim() || '',
+      },
+    }
+
+    if (!params.siteName) {
+      return NextResponse.json({ error: 'サイト名は必須です。' }, { status: 400 })
+    }
+
+    console.log('💭 コンセプトマークダウン生成開始:', { siteName: params.siteName })
+    
+    // Generate markdown (try Gemini first, fallback to manual)
+    let markdown: string
+    try {
+      markdown = await generateMarkdownWithGemini(params, params.brief)
+      console.log('✨ Gemini APIでマークダウン生成完了')
+    } catch (error) {
+      console.log('⚠️ Gemini生成失敗、フォールバック使用:', error)
+      markdown = buildMarkdown(params)
+      console.log('📝 フォールバックマークダウン生成完了')
+    }
+
+    // Save with the generated markdown
+    const result = await saveConceptMarkdown({ ...params, markdown })
+    console.log('💾 コンセプトファイル保存完了:', result.filePathRelative)
+    
+    // Save to Supabase concepts table
+    console.log('🚨 DEBUG: About to insert to Supabase concepts table')
+    const { data: conceptData, error: insertError } = await supabase
+      .from('concepts')
+      .insert({
+        site_name: params.siteName,
+        pasona_input: {
+          problem: params.problem,
+          affinity: params.affinity,
+          solution: params.solution,
+          offer: params.offer,
+          narrowing_down: params.narrowingDown,
+          action: params.action
+        },
+        markdown_content: markdown,
+        brief: params.brief,
+        colors: params.colors,
+        nav: params.nav,
+        logo_text: params.logoText,
+        socials: params.socials,
+        contact: params.contact,
+        file_path: result.filePathRelative,
+        user_id: user.id
+      })
+      .select()
+      .single()
+
+    if (insertError) {
+      console.error('🚨 DEBUG: Database insert error:', insertError)
+      console.error('🚨 DEBUG: Full error details:', JSON.stringify(insertError, null, 2))
+      return NextResponse.json(
+        { error: 'Failed to save concept to database', details: insertError.message },
+        { status: 500 }
+      )
+    }
+
+    console.log('✅ Concept saved to database with ID:', conceptData.id)
+    
+    return NextResponse.json({ 
+      success: true, 
+      ...result,
+      conceptId: conceptData.id,
+      message: `コンセプトマークダウンを作成しました: ${result.filePathRelative}`
+    })
+  } catch (error: any) {
+    console.error('🚨 DEBUG: Catch block error:', error)
+    console.error('🚨 DEBUG: Error stack:', error?.stack)
+    return NextResponse.json(
+      { success: false, error: error?.message || 'Failed to save concept' },
+      { status: 500 },
+    )
+  }
+}
+
+

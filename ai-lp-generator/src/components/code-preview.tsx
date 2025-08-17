@@ -187,8 +187,7 @@ export default function CodePreview({
             
             <TabsContent value="code" className="space-y-4">
               <LiveProvider 
-                code={currentCode} 
-                onError={(error) => console.error('LiveProvider error:', error)}
+                code={currentCode}
               >
                 <div className="border rounded-lg overflow-hidden">
                   <LiveEditor 

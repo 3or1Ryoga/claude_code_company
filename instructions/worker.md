@@ -11,20 +11,54 @@
 
 ## 実行コマンド
 ```bash
+# tmuxセッション存在確認
+if ! tmux has-session -t multiagent 2>/dev/null; then
+    echo "⚠️ multiagentセッションが存在しません。セッションを作成中..."
+    tmux new-session -d -s multiagent
+    tmux split-window -h -t multiagent
+    tmux split-window -v -t multiagent:0.0  
+    tmux split-window -v -t multiagent:0.1
+fi
+
 # Hello World デモ実行
-echo "Hello World from $(whoami) - I am worker[1-3]!"
+echo "Hello World from $(whoami) - I am worker[1-2]!"
+
+# tmpディレクトリ作成
+mkdir -p ./tmp
 
 # 自分の完了ファイル作成
-touch ./tmp/worker1_done.txt  # worker1の場合
-# touch ./tmp/worker2_done.txt  # worker2の場合  
-# touch ./tmp/worker3_done.txt  # worker3の場合
+if echo "$0" | grep -q "worker1" || [ "$(tmux display-message -t multiagent:0.1 -p '#{pane_id}')" = "$(tmux display-message -p '#{pane_id}')" ]; then
+    touch ./tmp/worker1_done.txt
+    echo "✅ worker1 完了ファイル作成"
+elif echo "$0" | grep -q "worker2" || [ "$(tmux display-message -t multiagent:0.2 -p '#{pane_id}')" = "$(tmux display-message -p '#{pane_id}')" ]; then
+    touch ./tmp/worker2_done.txt
+    echo "✅ worker2 完了ファイル作成"
+else
+    # フォールバック：ランダムworker選択
+    if [ ! -f ./tmp/worker1_done.txt ]; then
+        touch ./tmp/worker1_done.txt
+        echo "✅ worker1 完了ファイル作成（フォールバック）"
+    else
+        touch ./tmp/worker2_done.txt
+        echo "✅ worker2 完了ファイル作成（フォールバック）"
+    fi
+fi
 
 # 全員の完了確認
-if [ -f ./tmp/worker1_done.txt ] && [ -f ./tmp/worker2_done.txt ] && [ -f ./tmp/worker3_done.txt ]; then
+sleep 2  # 他のworkerの処理を待機
+if [ -f ./tmp/worker1_done.txt ] && [ -f ./tmp/worker2_done.txt ]; then
     echo "全員の作業完了を確認（最後の完了者として報告）"
-    ./agent-send.sh boss1 "全員の作業完了しました"
+    
+    # agent-send.shの存在確認
+    if [ -f ./agent-send.sh ]; then
+        ./agent-send.sh boss1 "全員の作業完了しました"
+    else
+        echo "⚠️ agent-send.sh not found, using tmux direct send"
+        tmux send-keys -t multiagent:0.0 "全員の作業完了しました" Enter
+    fi
 else
     echo "他のworkerの完了を待機中..."
+    echo "現在の状況: worker1=$([ -f ./tmp/worker1_done.txt ] && echo "完了" || echo "未完了") worker2=$([ -f ./tmp/worker2_done.txt ] && echo "完了" || echo "未完了")"
 fi
 ```
 
@@ -50,10 +84,6 @@ fi
   - Next.jsプロジェクト構成の設計
   - API Routes仕様書の作成
   - データベース設計書の作成
-- **worker3**: セキュリティ・テスト・デプロイ要件の定義（セキュリティ要件、テスト戦略、デプロイ要件）
-  - Next.jsセキュリティ要件の定義
-  - テスト計画の策定
-  - Vercel/Netlifyデプロイ要件の整理
 
 ### Next.js開発フェーズ
 - **worker1**: フロントエンド開発（Next.js UI/UX、レスポンシブ対応、ユーザーインターフェース）
@@ -64,7 +94,3 @@ fi
   - Next.js API Routesの実装
   - データベース操作の実装
   - ビジネスロジックの実装
-- **worker3**: テスト・デプロイ（Next.js品質確認、Vercel/Netlifyデプロイ、運用準備）
-  - Jest/Testing Libraryでのテスト実装
-  - Vercel/Netlifyデプロイ設定の作成
-  - 運用ドキュメントの作成
